@@ -53,32 +53,34 @@ void NetworkManager::listenForConnections(){
     struct sockaddr_in address;
     int addrLen = sizeof(address);
 
-    std::cout<<"Waiting for connection from Android app...\n";
+    while(is_running){
+        std::cout<<"Waiting for connection from Android app...\n";
+        
+        // 5. Accept an incoming connection (This blocks until a client connects)
+        // NOTE: accept is blocking call, code will pause and wait until android app initiates a connection
+        int new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrLen);
+        if(new_socket < 0){
+            std::cerr<<"Error: Accept failed!\n";
+            return;
+        }
     
-    // 5. Accept an incoming connection (This blocks until a client connects)
-    // NOTE: accept is blocking call, code will pause and wait until android app initiates a connection
-    int new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrLen);
-    if(new_socket < 0){
-        std::cerr<<"Error: Accept failed!\n";
-        return;
+        std::cout<<"Client connection accepted!\n";
+    
+    
+        char buffer[1024] = {0};
+        int valread;
+    
+        // Read incoming data in loop until client disconnects
+        while((valread = read(new_socket, buffer, 1024)) > 0){
+            std::cout << "[Network] Received: " << buffer;
+            memset(buffer, 0, sizeof(buffer));   // clear buffer for next message
+        }
+    
+        // will add the logic to actually read/write data with the Android app later.
+        // For now, just close the client socket after accepting it to test connection.
+        std::cout << "Client disconnected.\n";
+        close(new_socket);
     }
-
-    std::cout<<"Client connection accepted!\n";
-
-
-    char buffer[1024] = {0};
-    int valread;
-
-    // Read incoming data in loop until client disconnects
-    while((valread = read(new_socket, buffer, 1024)) > 0){
-        std::cout << "[Network] Received: " << buffer;
-        memset(buffer, 0, sizeof(buffer));   // clear buffer for next message
-    }
-
-    // will add the logic to actually read/write data with the Android app later.
-    // For now, just close the client socket after accepting it to test connection.
-    std::cout << "Client disconnected.\n";
-    close(new_socket);
 }
 
 

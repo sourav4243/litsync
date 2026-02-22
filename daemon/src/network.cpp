@@ -65,8 +65,19 @@ void NetworkManager::listenForConnections(){
 
     std::cout<<"Client connection accepted!\n";
 
-    // We will add the logic to actually read/write data with the Android app later.
-    // For now, we just clone the client socket after accepting it to test connection.
+
+    char buffer[1024] = {0};
+    int valread;
+
+    // Read incoming data in loop until client disconnects
+    while((valread = read(new_socket, buffer, 1024)) > 0){
+        std::cout << "[Network] Received: " << buffer;
+        memset(buffer, 0, sizeof(buffer));   // clear buffer for next message
+    }
+
+    // will add the logic to actually read/write data with the Android app later.
+    // For now, just close the client socket after accepting it to test connection.
+    std::cout << "Client disconnected.\n";
     close(new_socket);
 }
 

@@ -1,0 +1,3 @@
+build/
+daemon/src/litsync_folder
+daemon/src/litsync_daemon

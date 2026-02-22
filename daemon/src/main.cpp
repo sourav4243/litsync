@@ -3,6 +3,19 @@
 #include<unistd.h>
 #include<filesystem>
 #include<string>
+#include<thread>
+#include "network.hpp"
+
+// This function runs in background thread
+void runNetworkServer(NetworkManager& netManager){
+    int port = 8080;
+    if(netManager.startServer(port)){
+        // this blocks, waiting for android to connect. Won't block inotify
+        netManager.listenForConnections();
+    }else{
+        std::cerr << "Failed to start network server.\n";
+    }
+}
 
 // inotify gives us a stream of bytes. We need a buffer large enough to hold multiple events and the variable-length filenames attached to them.
 #define MAX_EVENTS 1024
@@ -10,6 +23,16 @@
 #define EVENT_BUF_LEN (MAX_EVENTS * (EVENT_SIZE * 16))
 
 int main(){
+    std::cout << "Starting LitSync Daemon...\n";
+
+    NetworkManager networkManager;
+
+    // Launch network server in separate background thread. std::ref pass networkManager by reference
+    std::thread networkThread(runNetworkServer, std::ref(networkManager));
+
+
+    std::cout << "Starting inotify watcher...\n";
+
     // 1. set up the directory we want LitSync to watch
     std::string path_to_watch = "./litsync_folder";
     std::filesystem::create_directory(path_to_watch);
@@ -68,5 +91,9 @@ int main(){
     // Cleanup (though we have an infinite loop above right now)
     inotify_rm_watch(fd, wd);
     close(fd);
+
+    if(networkThread.joinable()){
+        networkThread.join();
+    }
     return 0;
 }

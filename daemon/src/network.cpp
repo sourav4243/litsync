@@ -4,6 +4,38 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <cstring>
+#include <vector>
+#include <sstream>
+
+// struct to hold pased command
+struct SyncCommand {
+    std::string action;
+    std::string filename;
+    size_t filesize;
+};
+
+SyncCommand parseCommand(const std::string &header){
+    SyncCommand cmd;
+    std::vector<std::string> tokens;
+    std::string token;
+    std::istringstream tokenStream(header);
+
+    while(std::getline(tokenStream, token, '|')){
+        tokens.push_back(token);
+    }
+    
+    if(tokens.size() == 3){
+        cmd.action = tokens[0];
+        cmd.filename = tokens[1];
+        try {
+            cmd.filesize = std::stoull(tokens[2]);  // convert string to unsigned long long
+        } catch(...) {
+            cmd.filesize = 0;   // fallback if not a valid number
+        }
+    }
+
+    return cmd;
+}
 
 NetworkManager::NetworkManager() : server_fd(-1), is_running(false) {}
 
@@ -68,7 +100,29 @@ void NetworkManager::listenForConnections(){
     
     
         char buffer[1024] = {0};
-        int valread;
+        int valread = read(new_socket, buffer, 1024);
+
+        if(valread > 0){
+            std::string receivedData(buffer, valread);
+
+            // look for newline char that splits header from payload
+            size_t newlinePos = receivedData.find('\n');
+
+            if(newlinePos != std::string::npos){
+                std::string header = receivedData.substr(0, newlinePos);
+                SyncCommand cmd = parseCommand(header);
+
+                std::cout << "[Protocol] Action: " << cmd.action << std::endl;
+                std::cout << "[Protocol] File: " << cmd.filename << std::endl;
+                std::cout << "[Protocol] Size: " << cmd.filesize << " bytes" << std::endl;
+
+                if(cmd.action == "UPLOAD"){
+                    std::cout << "Ready to save file to disk...\n";
+                }
+            } else {
+                std::cout << "[Network] Raw string received: " << receivedData << std::endl;
+            }
+        }
     
         // Read incoming data in loop until client disconnects
         while((valread = read(new_socket, buffer, 1024)) > 0){

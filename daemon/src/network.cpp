@@ -6,6 +6,7 @@
 #include <cstring>
 #include <vector>
 #include <sstream>
+#include <fstream>  // for file writing
 
 // struct to hold pased command
 struct SyncCommand {
@@ -117,17 +118,38 @@ void NetworkManager::listenForConnections(){
                 std::cout << "[Protocol] Size: " << cmd.filesize << " bytes" << std::endl;
 
                 if(cmd.action == "UPLOAD"){
-                    std::cout << "Ready to save file to disk...\n";
+                    // set the path where the file will be saved
+                    std::string filepath = "./litsync_folder/" + cmd.filename;
+                    std::ofstream outfile(filepath, std::ios::binary);
+
+                    if(outfile.is_open()){
+                        size_t total_received = 0;
+
+                        // calculate if any file data came attached to the first header packet
+                        size_t payload_start = newlinePos + 1;
+                        size_t initial_data_length = valread - payload_start;
+
+                        if(initial_data_length > 0){
+                            outfile.write(buffer + payload_start, initial_data_length);
+                            total_received += initial_data_length;
+                        }
+
+                        // loop and download the rest of the file chunks
+                        while(total_received < cmd.filesize){
+                            int bytes_read = read(new_socket, buffer, sizeof(buffer));
+                            if(bytes_read < 0) break;   // network error or client disconnected early
+
+                            outfile.write(buffer, bytes_read);
+                            total_received += bytes_read;
+                        }
+
+                        outfile.close();
+                        std::cout << "Successfully saved " << cmd.filename << " to disk!\n";
+                    } else {
+                        std::cerr << "Error: Could not open file for writing: " << filepath << std::endl;
+                    }
                 }
-            } else {
-                std::cout << "[Network] Raw string received: " << receivedData << std::endl;
             }
-        }
-    
-        // Read incoming data in loop until client disconnects
-        while((valread = read(new_socket, buffer, 1024)) > 0){
-            std::cout << "[Network] Received: " << buffer;
-            memset(buffer, 0, sizeof(buffer));   // clear buffer for next message
         }
     
         // will add the logic to actually read/write data with the Android app later.

@@ -82,7 +82,7 @@ bool NetworkManager::startServer(int port){
 }
 
 
-void NetworkManager::listenForConnections(){
+void NetworkManager::listenForConnections(SyncState& syncState){
     struct sockaddr_in address;
     int addrLen = sizeof(address);
 
@@ -118,6 +118,9 @@ void NetworkManager::listenForConnections(){
                 std::cout << "[Protocol] Size: " << cmd.filesize << " bytes" << std::endl;
 
                 if(cmd.action == "UPLOAD"){
+                    std::cout << "Muting inotify for: " << cmd.filename << std::endl;
+                    syncState.ignoreFile(cmd.filename);     // lock and add file to ignore list
+
                     // set the path where the file will be saved
                     std::string filepath = "./litsync_folder/" + cmd.filename;
                     std::ofstream outfile(filepath, std::ios::binary);
@@ -148,6 +151,7 @@ void NetworkManager::listenForConnections(){
                     } else {
                         std::cerr << "Error: Could not open file for writing: " << filepath << std::endl;
                     }
+                    syncState.unignoreFile(cmd.filename);   // unlock, remove file from ignored list
                 }
             }
         }

@@ -1,17 +1,18 @@
-#include<iostream>
-#include<sys/inotify.h>
-#include<unistd.h>
-#include<filesystem>
-#include<string>
-#include<thread>
+#include <iostream>
+#include <sys/inotify.h>
+#include <unistd.h>
+#include <filesystem>
+#include <string>
+#include <thread>
 #include "network.hpp"
+#include "sync_state.hpp"
 
 // This function runs in background thread
-void runNetworkServer(NetworkManager& netManager){
+void runNetworkServer(NetworkManager& netManager, SyncState& syncState){
     int port = 8080;
     if(netManager.startServer(port)){
         // this blocks, waiting for android to connect. Won't block inotify
-        netManager.listenForConnections();
+        netManager.listenForConnections(syncState);
     }else{
         std::cerr << "Failed to start network server.\n";
     }
@@ -25,10 +26,13 @@ void runNetworkServer(NetworkManager& netManager){
 int main(){
     std::cout << "Starting LitSync Daemon...\n";
 
+    // create state and pass to thread
+    SyncState syncState;
+
     NetworkManager networkManager;
 
     // Launch network server in separate background thread. std::ref pass networkManager by reference
-    std::thread networkThread(runNetworkServer, std::ref(networkManager));
+    std::thread networkThread(runNetworkServer, std::ref(networkManager), std::ref(syncState));
 
 
     std::cout << "Starting inotify watcher...\n";
@@ -72,6 +76,14 @@ int main(){
             struct inotify_event* event = (struct inotify_event*) &buffer[i];
 
             if(event->len){
+                std::string filename = event->name;
+
+                // fix: skip if the file is currently downloading
+                if(syncState.isIgnored(filename)){
+                    i+= EVENT_SIZE + event->len;
+                    continue;
+                }
+
                 if(event->mask & IN_CREATE){
                     std::cout<<"[+] File Created: "<<event->name<<std::endl;
                 } else if(event->mask & IN_DELETE || event->mask & IN_MOVED_FROM){

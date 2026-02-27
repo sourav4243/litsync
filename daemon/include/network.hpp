@@ -1,5 +1,6 @@
 #pragma once
-#include<string>
+#include <string>
+#include "sync_state.hpp"
 
 class NetworkManager{
 public:
@@ -13,7 +14,7 @@ public:
     void stopServer();
 
     // Blocks and waits for an incoming connection from the Android app
-    void listenForConnections();
+    void listenForConnections(SyncState& syncState);
 
 private:
     int server_fd;

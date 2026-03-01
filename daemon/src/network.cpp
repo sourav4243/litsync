@@ -45,63 +45,63 @@ NetworkManager::~NetworkManager(){
 }
 
 bool NetworkManager::startServer(int port){
-    // 1. Create socket file descriptor (IPv4, TCP)
+    // create socket file descriptor (IPv4, TCP)
     server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if(server_fd == 0){
-        std::cerr << "Error: socker creation failed!\n";
+        std::cerr << "[Network] Error: socker creation failed!\n";
         return false;
     }
 
-    // 2. Forcefully attach socket to the port (prevents "Address already in use" errors)
+    // forcefully attach socket to the port (prevent "Address already in use" errors)
     int opt = 1;
     if(setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))){
-        std::cerr << "Error: setsockopt failed!\n";
+        std::cerr << "[Network] Error: setsockopt failed!\n";
         return false;
     }
 
     struct sockaddr_in address;
     address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;   // Listen to all available interfaces
-    address.sin_port = htons(port);         // Convert port to network byte order
+    address.sin_addr.s_addr = INADDR_ANY;   // listen to all available interfaces
+    address.sin_port = htons(port);         // convert port to network byte order
 
-    // 3. Bind the socket to the network address and port
+    // bind the socket to the network address and port
     if(bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0){
-        std::cerr << "Error: Bind failed! Port might be in use.\n";
+        std::cerr << "[Network] Error: Bind failed! Port might be in use.\n";
         return false;
     }
 
     // 4. Start listening for incoming connections (allow a backlog of 3 pending connections)
     if(listen(server_fd, 3) < 0){
-        std::cerr << "Error: Listen failed!\n";
+        std::cerr << "[Network] Error: Listen failed!\n";
         return false;
     }
 
     is_running = true;
-    std::cout << "Server listening on port " << port << std::endl;
+    std::cout << "[Network] Server listening on port " << port << std::endl;
     return true;
 }
 
 
-void NetworkManager::listenForConnections(SyncState& syncState){
+void NetworkManager::listenForConnections(SyncManager& syncManager){
     struct sockaddr_in address;
     int addrLen = sizeof(address);
 
     while(is_running){
-        std::cout<<"Waiting for connection from Android app...\n";
+        std::cout<<"[Network] Waiting for connection from Android app...\n";
         
-        // 5. Accept an incoming connection (This blocks until a client connects)
+        // accept an incoming connection (This blocks until a client connects)
         // NOTE: accept is blocking call, code will pause and wait until android app initiates a connection
         int new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrLen);
         if(new_socket < 0){
-            std::cerr<<"Error: Accept failed!\n";
+            std::cerr<<"[Network] Error: Accept failed!\n";
             return;
         }
     
-        std::cout<<"Client connection accepted!\n";
+        std::cout<<"[Network] Client connection accepted!\n";
     
     
-        char buffer[1024] = {0};
-        int valread = read(new_socket, buffer, 1024);
+        char buffer[4096] = {0};
+        int valread = read(new_socket, buffer, sizeof(buffer));
 
         if(valread > 0){
             std::string receivedData(buffer, valread);
@@ -118,10 +118,10 @@ void NetworkManager::listenForConnections(SyncState& syncState){
                 std::cout << "[Protocol] Size: " << cmd.filesize << " bytes" << std::endl;
 
                 if(cmd.action == "UPLOAD"){
-                    std::cout << "Muting inotify for: " << cmd.filename << std::endl;
-                    syncState.ignoreFile(cmd.filename);     // lock and add file to ignore list
+                    // std::cout << "Muting inotify for: " << cmd.filename << std::endl;
+                    syncManager.ignoreFile(cmd.filename);     // lock and add file to ignore list
 
-                    // set the path where the file will be saved
+                    // path where the file will be saved
                     std::string filepath = "./litsync_folder/" + cmd.filename;
                     std::ofstream outfile(filepath, std::ios::binary);
 
@@ -147,18 +147,18 @@ void NetworkManager::listenForConnections(SyncState& syncState){
                         }
 
                         outfile.close();
-                        std::cout << "Successfully saved " << cmd.filename << " to disk!\n";
+                        std::cout << "[Network] Successfully saved " << cmd.filename << " to disk!\n";
                     } else {
-                        std::cerr << "Error: Could not open file for writing: " << filepath << std::endl;
+                        std::cerr << "[Netowork] Error: Could not open file for writing: " << filepath << std::endl;
                     }
-                    syncState.unignoreFile(cmd.filename);   // unlock, remove file from ignored list
+                    syncManager.unignoreFile(cmd.filename);   // unlock, remove file from ignored list
                 }
             }
         }
     
         // will add the logic to actually read/write data with the Android app later.
         // For now, just close the client socket after accepting it to test connection.
-        std::cout << "Client disconnected.\n";
+        std::cout << "[Network] Client disconnected.\n";
         close(new_socket);
     }
 }
@@ -169,6 +169,6 @@ void NetworkManager::stopServer(){
         close(server_fd);
         server_fd = -1;
         is_running = false;
-        std::cout << "Server stopped.\n";
+        std::cout << "[Network] Server stopped.\n";
     }
 }

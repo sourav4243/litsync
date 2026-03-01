@@ -151,7 +151,6 @@ void NetworkManager::listenForConnections(SyncManager& syncManager){
                     } else {
                         std::cerr << "[Netowork] Error: Could not open file for writing: " << filepath << std::endl;
                     }
-                    syncManager.unignoreFile(cmd.filename);   // unlock, remove file from ignored list
                 }
             }
         }

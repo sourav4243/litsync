@@ -14,7 +14,7 @@ void Watcher::start(const std::string& path_to_watch, SyncManager& syncManager){
         return;
     }
 
-    int wd = inotify_add_watch(fd, path_to_watch.c_str(), IN_CREATE | IN_DELETE | IN_MODIFY | IN_MOVED_FROM | IN_MOVED_TO);
+    int wd = inotify_add_watch(fd, path_to_watch.c_str(), IN_CREATE | IN_DELETE | IN_MODIFY | IN_MOVED_FROM | IN_MOVED_TO | IN_CLOSE_WRITE);
     if(wd == -1){
         std::cerr << "[Watcher] Fatal: could not watch directory: " << path_to_watch << std::endl;
         return;
@@ -40,7 +40,13 @@ void Watcher::start(const std::string& path_to_watch, SyncManager& syncManager){
 
                 // Check the SyncManager to see if the netwrok thread is currently downloading this file.
                 if(syncManager.isIgnored(filename)){
+                    // if OS tells us the file is completely closed, the network download is finished!
+                    if(event->mask & IN_CLOSE_WRITE){
+                        std::cout << "[Watcher] Network finished writing, unlocking: " << filename << std::endl;
+                        syncManager.unignoreFile(filename);
+                    }
                     i += EVENT_SIZE + event->len;
+                    continue;
                 }
 
                 if(event->mask & IN_CREATE){

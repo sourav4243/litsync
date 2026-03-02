@@ -7,6 +7,8 @@
 #include <vector>
 #include <sstream>
 #include <fstream>  // for file writing
+#include <arpa/inet.h>  // provided functions to manipulate ip addresses
+#include <filesystem>   // to handle file sizes
 
 // struct to hold pased command
 struct SyncCommand {
@@ -170,4 +172,66 @@ void NetworkManager::stopServer(){
         is_running = false;
         std::cout << "[Network] Server stopped.\n";
     }
+}
+
+bool NetworkManager::sendFile(const std::string& filepath, const std::string& target_ip, int target_port){
+    // file name and size
+    std::filesystem::path p(filepath);
+    std::string filename = p.filename().string();
+
+    std::ifstream file(filepath, std::ios::binary | std::ios::ate); // open at the end to get size
+    if(!file.is_open()){
+        std::cerr << "[Network-Client] Error: Cannot open file to send: " << filepath << std::endl;
+        return false;
+    }
+
+    size_t filesize = file.tellg();
+    file.seekg(0, std::ios::beg);   // rewind back to the beginning
+
+    // create a client socket
+    int sock = socket(AF_INET, SOCK_STREAM, 0);
+    if(sock < 0){
+        std::cerr << "[Network-Client] Error: Socket creation failed" << std::endl;
+        return false;
+    }
+
+    struct sockaddr_in serv_addr;
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(target_port);
+
+    // convert IPv4 address from text to binary format
+    if(inet_pton(AF_INET, target_ip.c_str(), &serv_addr.sin_addr) <= 0){
+        std::cerr << "[Netwrok-Client] Error: Invalid address / Address not supported\n";
+        close(sock);
+        return false;
+    }
+
+    // connect to the target (android app)
+    if(connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0){
+        std::cerr << "[Network-Client] Error: Connection to target fialed\n";
+        close(sock);
+        return false;
+    }
+
+    std::cout << "[Network-Client] Connected to " << target_ip << ":" << target_port << std::endl;
+
+    // send the LitSync Protocol Header
+    std::string header = "UPLOAD|" + filename + "|" + std::to_string(filesize) + "\n";
+    send(sock, header.c_str(), header.length(), 0);
+
+    // send the file data in chunks
+    char buffer[4096];
+    while(file.read(buffer, sizeof(buffer))){
+        send(sock, buffer, file.gcount(), 0);
+    }
+    // send any remaining bytes that didn't fill the last buffer completely
+    if(file.gcount() > 0){
+        send(sock, buffer, file.gcount(), 0);
+    }
+
+    std::cout << "[Network-Client] Successfully send " << filename << " to network\n";
+
+    file.close();
+    close(sock);
+    return true;
 }

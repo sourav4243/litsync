@@ -229,7 +229,7 @@ bool NetworkManager::sendFile(const std::string& filepath, const std::string& ta
         send(sock, buffer, file.gcount(), 0);
     }
 
-    std::cout << "[Network-Client] Successfully send " << filename << " to network\n";
+    std::cout << "[Network-Client] Successfully sent " << filename << " to network\n";
 
     file.close();
     close(sock);

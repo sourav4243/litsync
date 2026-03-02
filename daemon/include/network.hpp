@@ -19,4 +19,7 @@ public:
 
     // Blocks and waits for an incoming connection from the Android app
     void listenForConnections(SyncManager& syncManager);
+
+    // New client method to push files out
+    bool sendFile(const std::string& filepath, const std::string& target_ip, int target_port);
 };

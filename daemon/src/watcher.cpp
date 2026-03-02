@@ -7,7 +7,7 @@
 #define EVENT_SIZE (sizeof(struct inotify_event))
 #define EVENT_BUF_LEN (MAX_EVENTS * (EVENT_SIZE * 16))
 
-void Watcher::start(const std::string& path_to_watch, SyncManager& syncManager){
+void Watcher::start(const std::string& path_to_watch, SyncManager& syncManager, NetworkManager& networkManager, const std::string& target_ip, int target_port){
     int fd = inotify_init();
     if(fd < 0){
         std::cerr << "[Watcher] Fatal: failed to initialize inotify.\n";
@@ -49,14 +49,21 @@ void Watcher::start(const std::string& path_to_watch, SyncManager& syncManager){
                     continue;
                 }
 
-                if(event->mask & IN_CREATE){
-                    std::cout<<"[+] File Created: "<<event->name<<std::endl;
+                // If file not ignored, means locally created/modified it
+                if(event->mask & IN_CLOSE_WRITE){
+                    std::cout << "[Watcher] Local file saved, pushing to network: " << filename << std::endl;
+                    std::string full_path = path_to_watch + "/" + filename;
+
+                    // now send this file
+                    networkManager.sendFile(full_path, target_ip, target_port);
+                } else if(event->mask & IN_CREATE){
+                    std::cout<<"[Watcher] File Created (waiting for close to send) +++ : "<<event->name<<std::endl;
                 } else if(event->mask & IN_DELETE || event->mask & IN_MOVED_FROM){
-                    std::cout<<"[-] File Deleted: "<<event->name<<std::endl;
+                    std::cout<<"[Watcher] File Deleted (needs network sync)--- : "<<event->name<<std::endl;
                 } else if(event->mask & IN_MODIFY){
-                    std::cout<<"[*] File Modified: "<<event->name<<std::endl;
+                    std::cout<<"[Watcher] File Modified *** (needs network sync): "<<event->name<<std::endl;
                 } else if(event->mask & IN_MOVED_TO){
-                    std::cout<<"[*] File Moved In: "<<event->name<<std::endl;
+                    std::cout<<"[Watcher] File Moved In --> (waiting for close to send): "<<event->name<<std::endl;
                 }
             }
             i += EVENT_SIZE + event->len;

@@ -34,7 +34,7 @@ int main(){
     std::thread networkThread(runNetworkServer, std::ref(networkManager), std::ref(syncManager));
 
     // Start filesystem watcher on main thread (this blocks forever);
-    watcher.start(path_to_watch, syncManager);
+    watcher.start(path_to_watch, syncManager, networkManager, "127.0.0.1", 8081);
 
     // cleanup (if watcher ever exists)
     networkManager.stopServer();

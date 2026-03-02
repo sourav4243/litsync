@@ -201,7 +201,7 @@ bool NetworkManager::sendFile(const std::string& filepath, const std::string& ta
 
     // convert IPv4 address from text to binary format
     if(inet_pton(AF_INET, target_ip.c_str(), &serv_addr.sin_addr) <= 0){
-        std::cerr << "[Netwrok-Client] Error: Invalid address / Address not supported\n";
+        std::cerr << "[Network-Client] Error: Invalid address / Address not supported\n";
         close(sock);
         return false;
     }

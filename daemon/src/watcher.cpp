@@ -49,8 +49,8 @@ void Watcher::start(const std::string& path_to_watch, SyncManager& syncManager, 
                     continue;
                 }
 
-                // If file not ignored, means locally created/modified it
-                if(event->mask & IN_CLOSE_WRITE){
+                // If file not ignored, means locally created/modified/moved in
+                if(event->mask & IN_CLOSE_WRITE || event->mask & IN_MOVED_TO){
                     std::cout << "[Watcher] Local file saved, pushing to network: " << filename << std::endl;
                     std::string full_path = path_to_watch + "/" + filename;
 
@@ -61,9 +61,7 @@ void Watcher::start(const std::string& path_to_watch, SyncManager& syncManager, 
                 } else if(event->mask & IN_DELETE || event->mask & IN_MOVED_FROM){
                     std::cout<<"[Watcher] File Deleted (needs network sync)--- : "<<event->name<<std::endl;
                 } else if(event->mask & IN_MODIFY){
-                    std::cout<<"[Watcher] File Modified *** (needs network sync): "<<event->name<<std::endl;
-                } else if(event->mask & IN_MOVED_TO){
-                    std::cout<<"[Watcher] File Moved In --> (waiting for close to send): "<<event->name<<std::endl;
+                    std::cout<<"[Watcher] File Modified *** : "<<event->name<<std::endl;
                 }
             }
             i += EVENT_SIZE + event->len;

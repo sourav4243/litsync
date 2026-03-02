@@ -208,7 +208,7 @@ bool NetworkManager::sendFile(const std::string& filepath, const std::string& ta
 
     // connect to the target (android app)
     if(connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0){
-        std::cerr << "[Network-Client] Error: Connection to target fialed\n";
+        std::cerr << "[Network-Client] Error: Connection to target failed\n";
         close(sock);
         return false;
     }

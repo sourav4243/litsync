@@ -22,4 +22,7 @@ public:
 
     // New client method to push files out
     bool sendFile(const std::string& filepath, const std::string& target_ip, int target_port);
+
+    // method to tell network to delete a file
+    bool sendDelete(const std::string& filename, const std::string& target_ip, int target_port);
 };

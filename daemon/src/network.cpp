@@ -235,3 +235,36 @@ bool NetworkManager::sendFile(const std::string& filepath, const std::string& ta
     close(sock);
     return true;
 }
+
+bool NetworkManager::sendDelete(const std::string& filename, const std::string& target_ip, int target_port){
+    int sock = socket(AF_INET, SOCK_STREAM, 0);
+    if(sock < 0){
+        std::cerr << "[Network-Client] Error: Socket creation failed\n";
+        return false;
+    }
+
+    struct sockaddr_in serv_addr;
+    serv_addr.sin_family =  AF_INET;
+    serv_addr.sin_port = htons(target_port);
+
+    if(inet_pton(AF_INET, target_ip.c_str(), &serv_addr.sin_addr) <= 0){
+        std::cerr << "[Network-Client] Error: Invalid address / Address not supported\n";
+        close(sock);
+        return false;
+    }
+
+    if(connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0){
+        std::cerr << "[Network-Client]: Error: Connection to target failed\n";
+        close(sock);
+        return false;
+    }
+
+    // send DELETE command through LitSync protocol
+    std::string header = "DELETE|" + filename + "|0\n";
+    send(sock, header.c_str(), header.length(), 0);
+
+    std::cout << "[Network-Client] Successfully sent DELETE command for " << filename << std::endl;
+
+    close(sock);
+    return true;
+}

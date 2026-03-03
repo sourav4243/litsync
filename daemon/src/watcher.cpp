@@ -59,7 +59,8 @@ void Watcher::start(const std::string& path_to_watch, SyncManager& syncManager, 
                 } else if(event->mask & IN_CREATE){
                     std::cout<<"[Watcher] File Created (waiting for close to send) +++ : "<<event->name<<std::endl;
                 } else if(event->mask & IN_DELETE || event->mask & IN_MOVED_FROM){
-                    std::cout<<"[Watcher] File Deleted (needs network sync)--- : "<<event->name<<std::endl;
+                    std::cout<<"[Watcher] File Deleted, notifying network --- : "<< filename <<std::endl;
+                    networkManager.sendDelete(filename, target_ip, target_port);
                 } else if(event->mask & IN_MODIFY){
                     std::cout<<"[Watcher] File Modified *** : "<<event->name<<std::endl;
                 }

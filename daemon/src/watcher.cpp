@@ -41,8 +41,8 @@ void Watcher::start(const std::string& path_to_watch, SyncManager& syncManager, 
                 // Check the SyncManager to see if the netwrok thread is currently downloading this file.
                 if(syncManager.isIgnored(filename)){
                     // if OS tells us the file is completely closed, the network download is finished!
-                    if(event->mask & IN_CLOSE_WRITE){
-                        std::cout << "[Watcher] Network finished writing, unlocking: " << filename << std::endl;
+                    if((event->mask & IN_CLOSE_WRITE) || (event->mask & IN_DELETE)){
+                        std::cout << "[Watcher] Network finished operation, unlocking: " << filename << std::endl;
                         syncManager.unignoreFile(filename);
                     }
                     i += EVENT_SIZE + event->len;

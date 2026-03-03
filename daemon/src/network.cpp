@@ -10,6 +10,9 @@
 #include <arpa/inet.h>  // provided functions to manipulate ip addresses
 #include <filesystem>   // to handle file sizes
 
+// Change this folder in case we change target folder
+std::string target_folder = "./litsync_folder/";
+
 // struct to hold pased command
 struct SyncCommand {
     std::string action;
@@ -153,6 +156,22 @@ void NetworkManager::listenForConnections(SyncManager& syncManager){
                     } else {
                         std::cerr << "[Netowork] Error: Could not open file for writing: " << filepath << std::endl;
                     }
+                }
+
+                else if (cmd.action == "DELETE"){
+                    std::cout << "[Network] Muting inotify for remote deletion of: " << cmd.filename << std::endl;
+                    syncManager.ignoreFile(cmd.filename);   // lock file to prevent a loop
+
+                    std::string filepath = target_folder + cmd.filename;
+
+                    // std::filesystem::remove deleted file from hard drive
+                    if(std::filesystem::remove(filepath)){
+                        std::cout << "[Network] Successfully deleted " << cmd.filename << " from disk!\n";
+                    } else {
+                        std::cout << "[Network] File not found or already deleted: " << filepath << std::endl;
+                    }
+
+                    // we do not unignore it here. let OS do it to prevent race condition.
                 }
             }
         }

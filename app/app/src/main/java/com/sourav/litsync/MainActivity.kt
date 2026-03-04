@@ -84,15 +84,50 @@ class MainActivity : ComponentActivity(){
                 }
             }
         } else {
+            // run exactly once when UI loads and permission is true
+            var folderPath by remember { mutableStateOf("Initializing...")}
+
+            LaunchedEffect(Unit){
+                folderPath = createLitSyncFolder()
+            }
+
             // we have permission! show placeholder for actual app ui
             Column(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text("Permission Granted!")
-                Text("Ready to start LitSync Engine.")
+                Text(
+                    text = "Permission Granted!",
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Watching:\n$folderPath",
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 32.dp)
+                )
             }
         }
+    }
+
+    private fun createLitSyncFolder(): String {
+        // point to root of user's internal storage, then append our folder name
+//        val path = Environment.getExternalStorageDirectory().absolutePath + "/LitSync"
+        val path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).absolutePath + "/LitSync"
+        val folder = java.io.File(path)
+
+        if(!folder.exists()){
+            val success = folder.mkdirs()
+            if(success){
+                println("[LitSync] Created master folder at: $path")
+            } else {
+                println("[LitSync] Failed to create folder!")
+            }
+        } else {
+            println("[LitSync] Folder already exists at: $path")
+        }
+        return path
     }
 }

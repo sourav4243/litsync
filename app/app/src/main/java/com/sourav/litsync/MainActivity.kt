@@ -84,11 +84,20 @@ class MainActivity : ComponentActivity(){
                 }
             }
         } else {
-            // run exactly once when UI loads and permission is true
-            var folderPath by remember { mutableStateOf("Initializing...")}
+            // state variables to update the UI
+            var folderPath by remember { mutableStateOf("Initializing...") }
+            var serverAddress by remember { mutableStateOf("Searching for Linux Server...") }
 
+            // LaunchedEffect runs background tasks when the screen loads
             LaunchedEffect(Unit){
                 folderPath = createLitSyncFolder()
+
+                // start listening for the C++ UDP Broadcast
+                val discovery = DiscoveryManager()
+                discovery.listenForServer { ip,  port ->
+                    // this block runs when server is found
+                    serverAddress = "$ip:$port"
+                }
             }
 
             // we have permission! show placeholder for actual app ui
@@ -106,6 +115,20 @@ class MainActivity : ComponentActivity(){
                     text = "Watching:\n$folderPath",
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 32.dp)
+                )
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // display the discovered server
+                Text(
+                    text = "Target Server:",
+                    style = MaterialTheme.typography.labelLarge
+                )
+                Text(
+                    text = serverAddress,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = if(serverAddress.contains("Searching")) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 32.dp)
                 )
             }

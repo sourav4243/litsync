@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity(){
     override fun onCreate(savedInstanceState: Bundle?){
@@ -87,6 +88,7 @@ class MainActivity : ComponentActivity(){
             // state variables to update the UI
             var folderPath by remember { mutableStateOf("Initializing...") }
             var serverAddress by remember { mutableStateOf("Searching for Linux Server...") }
+            val coroutineScope = rememberCoroutineScope()
 
             // LaunchedEffect runs background tasks when the screen loads
             LaunchedEffect(Unit){
@@ -131,6 +133,30 @@ class MainActivity : ComponentActivity(){
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 32.dp)
                 )
+
+                // test upload button (only shows when connected)
+                if(!serverAddress.contains("Searching")){
+                    Spacer(modifier = Modifier.height(32.dp))
+                    Button(
+                        onClick = {
+                            coroutineScope.launch {
+                                // create a dummy file in android LitSync folder
+                                val testFile = java.io.File("$folderPath/android_hello.txt")
+                                testFile.writeText("Hello from Android! The LitSync Kotlin frontend is officially talking to the C++ backend.")
+
+                                // extract the IP and Port from our string
+                                val ip = serverAddress.split(":")[0]
+                                val port = serverAddress.split(":")[1].toInt()
+
+                                // fire it across the network
+                                NetworkManager().sendFile(testFile, ip, port)
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Text("TEST UPLOAD TO LINUX")
+                    }
+                }
             }
         }
     }
@@ -141,9 +167,9 @@ class MainActivity : ComponentActivity(){
         val path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).absolutePath + "/LitSync"
         val folder = java.io.File(path)
 
-        if(!folder.exists()){
+        if(!folder.exists()) {
             val success = folder.mkdirs()
-            if(success){
+            if(success) {
                 println("[LitSync] Created master folder at: $path")
             } else {
                 println("[LitSync] Failed to create folder!")

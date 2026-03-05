@@ -111,8 +111,12 @@ class MainActivity : ComponentActivity(){
                             coroutineScope.launch{
                                 NetworkManager().sendFile(file, ip, port)
                             }
+                        } else if(action == "DELETE"){
+                            // fire delete command across the network
+                            coroutineScope.launch{
+                                NetworkManager().sendDeleteCommand(file.name, ip, port)
+                            }
                         }
-                        // TODO: handle "DELETE" TCP request later
                     }
 
                     activeWatcher?.startWatching()

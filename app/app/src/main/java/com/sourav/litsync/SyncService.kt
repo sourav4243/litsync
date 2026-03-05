@@ -48,7 +48,7 @@ class SyncService : Service() {
     }
 
     private fun startSyncEngine(){
-        serviceScope.launch{
+        serviceScope.launch {
             // get folder path
             val folderPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).absolutePath + "/LitSync"
             val folder = File(folderPath)
@@ -56,25 +56,74 @@ class SyncService : Service() {
 
             LitSyncState.folderPath.value = folderPath
 
-            // discover linux server
-            val discovery = DiscoveryManager()
-            discovery.listenForServer { ip, port ->
+            while (isActive) {
+                LitSyncState.serverAddress.value = "Searching for Linux Server..."
+                println("[SyncService] Searching for Linux Daemon...")
 
-                LitSyncState.serverAddress.value = "$ip:$port"
+                // create a stop sign to wait for the result
+                val serverFound = CompletableDeferred<Pair<String, Int>>()
+
+                // coroutine pauses here until it hears a UDP broadcast
+                val discovery = DiscoveryManager()
+                discovery.listenForServer { ip, port ->
+                    // when server replies, complete the stop sign with the data
+                    serverFound.complete(Pair(ip, port))
+                }
+
+                // code freezes here until serverFound is completed
+                val result = serverFound.await()
+                val currentIp = result.first
+                val currentPort = result.second
+
+                // now it's connected
+                LitSyncState.serverAddress.value = "$currentIp:$currentPort"
+
+                // a tripwire to trigger if network dies
+                val connectionLost = CompletableDeferred<Unit>()
+
+                // start continuous heartbeat ping
+                val heartbeatJob = launch {
+                    while (isActive) {
+                        kotlinx.coroutines.delay(3000)  // ping every 3 seconds
+                        val isAlive = NetworkManager().sendPing(currentIp, currentPort)
+                        if (!isAlive) {
+                            println("[SyncService] Heartbeat lost! Tripping wire...")
+                            connectionLost.complete(Unit)   // trip the wire
+                            break
+                        }
+                    }
+                }
 
                 // start watching for file changes
-                activeWatcher = Watcher(folderPath) {action, file ->
-                    serviceScope.launch{
-                        if(action == "UPLOAD"){
-                            NetworkManager().sendFile(file, ip, port)
-                        }else if(action == "DELETE"){
-                            NetworkManager().sendDeleteCommand(file.name, ip, port)
+                activeWatcher = Watcher(folderPath) { action, file ->
+                    serviceScope.launch {
+                        val success = if (action == "UPLOAD") {
+                            NetworkManager().sendFile(file, currentIp, currentPort)
+                        } else if (action == "DELETE") {
+                            NetworkManager().sendDeleteCommand(file.name, currentIp, currentPort)
+                        } else {
+                            true
+                        }
+
+                        if(!success){
+                            println("[SyncService] Network request failed! Tripping wire...")
+                            connectionLost.complete(Unit)   // trip the wire
                         }
                     }
                 }
 
                 activeWatcher?.startWatching()
-                println("[SyncService] Headless Engine activity monitering $folderPath targeting $ip:$port")
+                println("[SyncService] Connected! Monitering $folderPath targeting $currentIp:$currentPort")
+
+                // pause main loop here forever UNTIL the tripwire is triggered
+                connectionLost.await()
+
+                // disconnected
+                // clean up the threads before the while loop starts over
+                println("[SyncService] Connection lost. Restarting search.")
+                heartbeatJob.cancel()
+                activeWatcher?.stopWatching()
+                activeWatcher = null
             }
         }
     }

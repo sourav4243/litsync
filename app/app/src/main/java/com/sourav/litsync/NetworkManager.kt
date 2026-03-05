@@ -64,4 +64,23 @@ class NetworkManager {
             }
         }
     }
+
+    suspend fun sendPing(targetIp: String, targetPort: Int): Boolean{
+        return withContext(Dispatchers.IO){
+            try{
+                // a strict 2-sec timeout. if takes longer, connection is dead
+                java.net.Socket().use { socket ->
+                    socket.connect(java.net.InetSocketAddress(targetIp, targetPort), 2000)
+
+                    val outputStream = socket.getOutputStream()
+                    // a dummy heartbeat
+                    outputStream.write("PING|heartbeat|0\n".toByteArray())
+                }
+                true
+            } catch (e: Exception) {
+                // socketTimeoutExecution or ConnectException means the daemon is offline
+                false
+            }
+        }
+    }
 }

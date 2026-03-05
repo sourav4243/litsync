@@ -90,38 +90,12 @@ class MainActivity : ComponentActivity(){
             var serverAddress by remember { mutableStateOf("Searching for Linux Server...") }
             val coroutineScope = rememberCoroutineScope()
 
-            // keep a strong, permanent reference to that Watcher
-            var activeWatcher by remember { mutableStateOf<Watcher?>(null)}
-
             // LaunchedEffect runs background tasks when the screen loads
             LaunchedEffect(Unit){
-                folderPath = createLitSyncFolder()
+                createLitSyncFolder()
+                // start immortal background service
+                startService(Intent(applicationContext, SyncService::class.java))
 
-                // start listening for the C++ UDP Broadcast
-                val discovery = DiscoveryManager()
-                discovery.listenForServer { ip,  port ->
-                    // this block runs when server is found
-                    serverAddress = "$ip:$port"
-
-                    // once connected, start watcher!
-                    activeWatcher = Watcher(folderPath) { action, file ->
-                        // this callback fires every time we save, add or delete a file
-                        if(action == "UPLOAD"){
-                            // launch background thread to send the file
-                            coroutineScope.launch{
-                                NetworkManager().sendFile(file, ip, port)
-                            }
-                        } else if(action == "DELETE"){
-                            // fire delete command across the network
-                            coroutineScope.launch{
-                                NetworkManager().sendDeleteCommand(file.name, ip, port)
-                            }
-                        }
-                    }
-
-                    activeWatcher?.startWatching()
-                    println("[Watcher] Activity monitoring $folderPath")
-                }
             }
 
             // we have permission! show placeholder for actual app ui
@@ -134,25 +108,11 @@ class MainActivity : ComponentActivity(){
                     text = "Permission Granted!",
                     style = MaterialTheme.typography.titleLarge
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Watching:\n$folderPath",
+                    text = "LitSync is running in the background.",
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 32.dp)
-                )
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // display the discovered server
-                Text(
-                    text = "Target Server:",
-                    style = MaterialTheme.typography.labelLarge
-                )
-                Text(
-                    text = serverAddress,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = if(serverAddress.contains("Searching")) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                    textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 32.dp)
                 )
             }

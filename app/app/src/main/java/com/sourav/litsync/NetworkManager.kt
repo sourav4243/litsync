@@ -17,7 +17,7 @@ class NetworkManager {
                     val outputStream = socket.getOutputStream()
 
                     // construct and send LitSync Protocol Header
-                    // must end with \n as C++ uses std::getling
+                    // must end with \n as C++ uses std::getline
                     val header = "UPLOAD|${file.name}|${file.length()}\n"
                     outputStream.write(header.toByteArray())
 
@@ -36,6 +36,30 @@ class NetworkManager {
                 }
             } catch (e: Exception) {
                 println("[Network] Upload failed: ${e.message}")
+                false
+            }
+        }
+    }
+
+    suspend fun sendDeleteCommand(fileName: String, targetIp: String, targetPort: Int): Boolean {
+        return withContext(Dispatchers.IO){
+            try{
+                println("[Network] Sending DELETE command for $fileName to $targetIp:$targetPort")
+
+                // open the TCP socket to the linux daemon
+                Socket(targetIp, targetPort).use { socket ->
+                    val outputStream = socket.getOutputStream()
+
+                    // construct and send a LitSync Protocol Delete Header
+                    val header = "DELETE|$fileName|0\n"
+                    outputStream.write(header.toByteArray())
+                    outputStream.flush()
+
+                    println("[Network] Successfully commanded Linux to delete: $fileName")
+                    true
+                }
+            } catch (e: Exception) {
+                println("[Network] Delete command failed: ${e.message}")
                 false
             }
         }

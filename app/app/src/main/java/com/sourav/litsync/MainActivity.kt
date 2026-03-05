@@ -86,16 +86,14 @@ class MainActivity : ComponentActivity(){
             }
         } else {
             // state variables to update the UI
-            var folderPath by remember { mutableStateOf("Initializing...") }
-            var serverAddress by remember { mutableStateOf("Searching for Linux Server...") }
-            val coroutineScope = rememberCoroutineScope()
+            val folderPath by LitSyncState.folderPath.collectAsState()
+            val serverAddress by LitSyncState.serverAddress.collectAsState()
 
             // LaunchedEffect runs background tasks when the screen loads
             LaunchedEffect(Unit){
                 createLitSyncFolder()
                 // start immortal background service
                 startService(Intent(applicationContext, SyncService::class.java))
-
             }
 
             // we have permission! show placeholder for actual app ui
@@ -105,14 +103,26 @@ class MainActivity : ComponentActivity(){
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "Permission Granted!",
+                    text = "Engine Running",
                     style = MaterialTheme.typography.titleLarge
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "LitSync is running in the background.",
+                    text = "Watching:\n$folderPath",
                     textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.padding(horizontal = 32.dp)
+                )
+                Spacer(modifier = Modifier.height(32.dp))
+                Text(
+                    text = "Target Server:",
+                    style = MaterialTheme.typography.labelLarge
+                )
+                Text(
+                    text = serverAddress,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = if(serverAddress.contains("Searching")) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 32.dp)
                 )
             }

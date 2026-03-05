@@ -54,9 +54,13 @@ class SyncService : Service() {
             val folder = File(folderPath)
             if (!folder.exists()) folder.mkdirs()
 
+            LitSyncState.folderPath.value = folderPath
+
             // discover linux server
             val discovery = DiscoveryManager()
             discovery.listenForServer { ip, port ->
+
+                LitSyncState.serverAddress.value = "$ip:$port"
 
                 // start watching for file changes
                 activeWatcher = Watcher(folderPath) {action, file ->

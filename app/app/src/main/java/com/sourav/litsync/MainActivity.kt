@@ -90,6 +90,9 @@ class MainActivity : ComponentActivity(){
             var serverAddress by remember { mutableStateOf("Searching for Linux Server...") }
             val coroutineScope = rememberCoroutineScope()
 
+            // keep a strong, permanent reference to that Watcher
+            var activeWatcher by remember { mutableStateOf<Watcher?>(null)}
+
             // LaunchedEffect runs background tasks when the screen loads
             LaunchedEffect(Unit){
                 folderPath = createLitSyncFolder()
@@ -99,6 +102,21 @@ class MainActivity : ComponentActivity(){
                 discovery.listenForServer { ip,  port ->
                     // this block runs when server is found
                     serverAddress = "$ip:$port"
+
+                    // once connected, start watcher!
+                    activeWatcher = Watcher(folderPath) { action, file ->
+                        // this callback fires every time we save, add or delete a file
+                        if(action == "UPLOAD"){
+                            // launch background thread to send the file
+                            coroutineScope.launch{
+                                NetworkManager().sendFile(file, ip, port)
+                            }
+                        }
+                        // TODO: handle "DELETE" TCP request later
+                    }
+
+                    activeWatcher?.startWatching()
+                    println("[Watcher] Activity monitoring $folderPath")
                 }
             }
 
@@ -133,30 +151,6 @@ class MainActivity : ComponentActivity(){
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 32.dp)
                 )
-
-                // test upload button (only shows when connected)
-                if(!serverAddress.contains("Searching")){
-                    Spacer(modifier = Modifier.height(32.dp))
-                    Button(
-                        onClick = {
-                            coroutineScope.launch {
-                                // create a dummy file in android LitSync folder
-                                val testFile = java.io.File("$folderPath/android_hello.txt")
-                                testFile.writeText("Hello from Android! The LitSync Kotlin frontend is officially talking to the C++ backend.")
-
-                                // extract the IP and Port from our string
-                                val ip = serverAddress.split(":")[0]
-                                val port = serverAddress.split(":")[1].toInt()
-
-                                // fire it across the network
-                                NetworkManager().sendFile(testFile, ip, port)
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                    ) {
-                        Text("TEST UPLOAD TO LINUX")
-                    }
-                }
             }
         }
     }

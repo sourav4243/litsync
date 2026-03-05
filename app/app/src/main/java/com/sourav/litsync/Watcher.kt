@@ -22,7 +22,7 @@ class Watcher(
                 println("[Watcher] File completely written: $path")
                 onFileChange("UPLOAD", affectedFile)
             }
-            DELETE -> {
+            DELETE, MOVED_FROM -> {
                 println("[Watcher] File removed: $path")
                 onFileChange("DELETE", affectedFile)
             }

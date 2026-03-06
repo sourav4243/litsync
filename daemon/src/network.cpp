@@ -91,8 +91,13 @@ void NetworkManager::listenForConnections(SyncManager& syncManager){
     struct sockaddr_in address;
     int addrLen = sizeof(address);
 
+    bool waiting_printed = false;   // flag to avoid span "Waiting..." every 3 seconds
+
     while(is_running){
-        std::cout<<"[Network] Waiting for connection from Android app...\n";
+        if(!waiting_printed){
+            std::cout<<"[Network] Waiting for connection from Android app...\n";
+            waiting_printed = true;
+        }
         
         // accept an incoming connection (This blocks until a client connects)
         // NOTE: accept is blocking call, code will pause and wait until android app initiates a connection
@@ -102,25 +107,32 @@ void NetworkManager::listenForConnections(SyncManager& syncManager){
             return;
         }
     
-        std::cout<<"[Network] Client connection accepted!\n";
-    
-    
+        
+        
         char buffer[4096] = {0};
         int valread = read(new_socket, buffer, sizeof(buffer));
-
+        
         if(valread > 0){
             std::string receivedData(buffer, valread);
 
             // look for newline char that splits header from payload
             size_t newlinePos = receivedData.find('\n');
-
+            
             if(newlinePos != std::string::npos){
                 std::string header = receivedData.substr(0, newlinePos);
                 SyncCommand cmd = parseCommand(header);
 
+                if(cmd.action == "PING"){
+                    close(new_socket);
+                    continue;
+                }
+                
+                std::cout<<"[Network] Client connection accepted!\n";
                 std::cout << "[Protocol] Action: " << cmd.action << std::endl;
                 std::cout << "[Protocol] File: " << cmd.filename << std::endl;
                 std::cout << "[Protocol] Size: " << cmd.filesize << " bytes" << std::endl;
+
+                waiting_printed = false;    // reset flag
 
                 if(cmd.action == "UPLOAD"){
                     // std::cout << "Muting inotify for: " << cmd.filename << std::endl;

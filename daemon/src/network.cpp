@@ -95,7 +95,7 @@ void NetworkManager::listenForConnections(SyncManager& syncManager){
 
     while(is_running){
         if(!waiting_printed){
-            std::cout<<"[Network] Waiting for connection from Android app...\n";
+            std::cout<<"\n[Network] Waiting for connection from Android app...\n";
             waiting_printed = true;
         }
         
@@ -107,7 +107,10 @@ void NetworkManager::listenForConnections(SyncManager& syncManager){
             return;
         }
     
-        
+
+        // extract android's ip address
+        char client_ip[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &address.sin_addr, client_ip, INET_ADDRSTRLEN);
         
         char buffer[4096] = {0};
         int valread = read(new_socket, buffer, sizeof(buffer));
@@ -123,6 +126,8 @@ void NetworkManager::listenForConnections(SyncManager& syncManager){
                 SyncCommand cmd = parseCommand(header);
 
                 if(cmd.action == "PING"){
+                    // save the freshest ip addr of android from hearbeat
+                    syncManager.setClientIp(client_ip);
                     close(new_socket);
                     continue;
                 }

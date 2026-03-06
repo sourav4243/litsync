@@ -5,5 +5,5 @@
 
 class Watcher {
 public:
-    void start(const std::string& path_to_watch, SyncManager& syncManager, NetworkManager& networkManager, const std::string& target_ip, int target_port);
+    void start(const std::string& path_to_watch, SyncManager& syncManager, NetworkManager& networkManager, int target_port);
 };

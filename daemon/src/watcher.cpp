@@ -7,7 +7,7 @@
 #define EVENT_SIZE (sizeof(struct inotify_event))
 #define EVENT_BUF_LEN (MAX_EVENTS * (EVENT_SIZE * 16))
 
-void Watcher::start(const std::string& path_to_watch, SyncManager& syncManager, NetworkManager& networkManager, const std::string& target_ip, int target_port){
+void Watcher::start(const std::string& path_to_watch, SyncManager& syncManager, NetworkManager& networkManager, int target_port){
     int fd = inotify_init();
     if(fd < 0){
         std::cerr << "[Watcher] Fatal: failed to initialize inotify.\n";
@@ -54,13 +54,26 @@ void Watcher::start(const std::string& path_to_watch, SyncManager& syncManager, 
                     std::cout << "[Watcher] Local file saved, pushing to network: " << filename << std::endl;
                     std::string full_path = path_to_watch + "/" + filename;
 
-                    // now send this file
-                    networkManager.sendFile(full_path, target_ip, target_port);
+                    // fresh dynamic android ip
+                    std::string target_ip = syncManager.getClientIp();
+                    if(!target_ip.empty()){                        
+                        // now send this file
+                        networkManager.sendFile(full_path, target_ip, target_port);
+                    } else {
+                        std::cout << "[Watcher] No Android client connected. Skipping push.\n";
+                    }
                 } else if(event->mask & IN_CREATE){
                     std::cout<<"[Watcher] File Created (waiting for close to send) +++ : "<<event->name<<std::endl;
                 } else if(event->mask & IN_DELETE || event->mask & IN_MOVED_FROM){
                     std::cout<<"[Watcher] File Deleted, notifying network --- : "<< filename <<std::endl;
-                    networkManager.sendDelete(filename, target_ip, target_port);
+
+                    // fresh dynamic android ip
+                    std::string target_ip = syncManager.getClientIp();
+                    if(!target_ip.empty()){
+                        networkManager.sendDelete(filename, target_ip, target_port);
+                    } else {
+                        std::cout << "[Watcher] No Android client connected. Skipping delete.\n";
+                    }
                 } else if(event->mask & IN_MODIFY){
                     std::cout<<"[Watcher] File Modified *** : "<<event->name<<std::endl;
                 }

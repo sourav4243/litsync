@@ -56,6 +56,12 @@ class SyncService : Service() {
 
             LitSyncState.folderPath.value = folderPath
 
+            // start Android TCP server in background (for receiving files)
+            val serverManager = ServerManager(folderPath)
+            launch{
+                serverManager.startListening(8081)
+            }
+
             while (isActive) {
                 LitSyncState.serverAddress.value = "Searching for Linux Server..."
                 println("[SyncService] Searching for Linux Daemon...")

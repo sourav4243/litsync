@@ -45,7 +45,7 @@ int main(){
     std::thread discoveryThread(runDiscoveryService, std::ref(discoveryManager), tcp_port);
 
     // Start filesystem watcher on main thread (this blocks forever);
-    watcher.start(path_to_watch, syncManager, networkManager, "127.0.0.1", 8081);
+    watcher.start(path_to_watch, syncManager, networkManager, 8081);
 
     // cleanup (if watcher ever exists)
     discoveryManager.stopBroadcasting();

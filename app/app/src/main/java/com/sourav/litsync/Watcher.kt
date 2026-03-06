@@ -19,6 +19,11 @@ class Watcher(
         when(event and ALL_EVENTS){
 
             CLOSE_WRITE, MOVED_TO -> {
+                // if server is downloading this file, IGNORE it
+                if(LitSyncState.filesBeingReceived.contains(affectedFile.name)){
+                    println("[Watcher] Ignoring incoming files: ${affectedFile.name}")
+                    return
+                }
                 println("[Watcher] File completely written: $path")
                 onFileChange("UPLOAD", affectedFile)
             }

@@ -166,10 +166,25 @@ void NetworkManager::listenForConnections(SyncManager& syncManager){
 
                             outfile.write(buffer, bytes_read);
                             total_received += bytes_read;
+
+                            // Progress Bar
+                            int bar_width = 50;
+                            double progress = static_cast<double>(total_received) / cmd.filesize;
+                            int pos = bar_width * progress;
+
+                            std::cout << "\r[Watcher] Receiving " << cmd.filename << " [";
+                            for(int i=0; i<bar_width; i++){
+                                if(i < pos) std::cout << "=";
+                                else if(i == pos) std::cout << ">";
+                                else std::cout << " ";
+                            }
+                            std::cout << "] " << int(progress *  100.0) << "%" << std::flush;
                         }
 
+                        std::cout << std::endl; // lock in the finished progress bar
+                        std::cout << "[Watcher] Successfully saved: " << cmd.filename << std::endl;
+
                         outfile.close();
-                        std::cout << "[Network] Successfully saved " << cmd.filename << " to disk!\n";
                     } else {
                         std::cerr << "[Netowork] Error: Could not open file for writing: " << filepath << std::endl;
                     }

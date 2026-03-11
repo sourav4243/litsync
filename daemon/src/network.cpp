@@ -9,6 +9,7 @@
 #include <fstream>  // for file writing
 #include <arpa/inet.h>  // provided functions to manipulate ip addresses
 #include <filesystem>   // to handle file sizes
+#include <iomanip>
 
 // Change this folder in case we change target folder
 std::string target_folder = "./litsync_folder/";
@@ -87,6 +88,20 @@ bool NetworkManager::startServer(int port){
 }
 
 
+std::string bytesToKBMB(long long bytes){
+    std::stringstream ss;
+    ss << std::fixed << std::setprecision(2);   // 2 decimal points
+    if(bytes >= 1024*1024){
+        double mb = static_cast<double>(bytes) / (1024.0 * 1024.0);
+        ss << mb << "MB";
+    }else{
+        double kb = static_cast<double>(bytes) / 1024.0;
+        ss << kb << "KB";
+    }
+    return ss.str();
+}
+
+
 void NetworkManager::listenForConnections(SyncManager& syncManager){
     struct sockaddr_in address;
     int addrLen = sizeof(address);
@@ -159,6 +174,7 @@ void NetworkManager::listenForConnections(SyncManager& syncManager){
                             total_received += initial_data_length;
                         }
 
+                        std::cout << "[Watcher] Receiving " << cmd.filename << std::endl;
                         // loop and download the rest of the file chunks
                         while(total_received < cmd.filesize){
                             int bytes_read = read(new_socket, buffer, sizeof(buffer));
@@ -166,10 +182,25 @@ void NetworkManager::listenForConnections(SyncManager& syncManager){
 
                             outfile.write(buffer, bytes_read);
                             total_received += bytes_read;
+
+                            // Progress Bar
+                            int bar_width = 50;
+                            double progress = static_cast<double>(total_received) / cmd.filesize;
+                            int pos = bar_width * progress;
+                            
+                            std::cout << "\r[";
+                            for(int i=0; i<bar_width; i++){
+                                if(i < pos) std::cout << "=";
+                                else if(i == pos) std::cout << ">";
+                                else std::cout << " ";
+                            }
+                            std::cout << "] " << int(progress *  100.0) << "% " << bytesToKBMB(total_received) << " / " << bytesToKBMB(cmd.filesize) << ")" << std::flush;
                         }
 
+                        std::cout << std::endl; // lock in the finished progress bar
+                        std::cout << "[Watcher] Successfully saved: " << cmd.filename << std::endl;
+
                         outfile.close();
-                        std::cout << "[Network] Successfully saved " << cmd.filename << " to disk!\n";
                     } else {
                         std::cerr << "[Netowork] Error: Could not open file for writing: " << filepath << std::endl;
                     }

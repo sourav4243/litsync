@@ -11,9 +11,6 @@
 #include <filesystem>   // to handle file sizes
 #include <iomanip>
 
-// Change this folder in case we change target folder
-std::string target_folder = "./litsync_folder/";
-
 // struct to hold pased command
 struct SyncCommand {
     std::string action;
@@ -102,7 +99,7 @@ std::string bytesToKBMB(long long bytes){
 }
 
 
-void NetworkManager::listenForConnections(SyncManager& syncManager){
+void NetworkManager::listenForConnections(SyncManager& syncManager, const std::string& sync_folder){
     struct sockaddr_in address;
     int addrLen = sizeof(address);
 
@@ -159,7 +156,7 @@ void NetworkManager::listenForConnections(SyncManager& syncManager){
                     syncManager.ignoreFile(cmd.filename);     // lock and add file to ignore list
 
                     // path where the file will be saved
-                    std::string filepath = "./litsync_folder/" + cmd.filename;
+                    std::string filepath = sync_folder + "/" + cmd.filename;
                     std::ofstream outfile(filepath, std::ios::binary);
 
                     if(outfile.is_open()){
@@ -194,7 +191,7 @@ void NetworkManager::listenForConnections(SyncManager& syncManager){
                                 else if(i == pos) std::cout << ">";
                                 else std::cout << " ";
                             }
-                            std::cout << "] " << int(progress *  100.0) << "% " << bytesToKBMB(total_received) << " / " << bytesToKBMB(cmd.filesize) << ")" << std::flush;
+                            std::cout << "] " << int(progress *  100.0) << "% (" << bytesToKBMB(total_received) << " / " << bytesToKBMB(cmd.filesize) << ")" << std::flush;
                         }
 
                         std::cout << std::endl; // lock in the finished progress bar
@@ -210,7 +207,7 @@ void NetworkManager::listenForConnections(SyncManager& syncManager){
                     std::cout << "[Network] Muting inotify for remote deletion of: " << cmd.filename << std::endl;
                     syncManager.ignoreFile(cmd.filename);   // lock file to prevent a loop
 
-                    std::string filepath = target_folder + cmd.filename;
+                    std::string filepath = sync_folder + "/" + cmd.filename;
 
                     // std::filesystem::remove deleted file from hard drive
                     if(std::filesystem::remove(filepath)){

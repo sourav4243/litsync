@@ -18,7 +18,7 @@ public:
     void stopServer();
 
     // Blocks and waits for an incoming connection from the Android app
-    void listenForConnections(SyncManager& syncManager);
+    void listenForConnections(SyncManager& syncManager, const std::string& sync_folder);
 
     // New client method to push files out
     bool sendFile(const std::string& filepath, const std::string& target_ip, int target_port);

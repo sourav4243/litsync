@@ -60,8 +60,7 @@ The Linux daemon acts as the backbone of the system, watching your local folder 
 Navigate to the daemon directory and build the project using CMake. *(Ensure you have `cmake` and a modern `g++` compiler installed).*
 ```bash
 cd daemon
-mkdir build
-cd build
+mkdir build && cd build
 cmake ..
 make
 ```
@@ -70,7 +69,7 @@ make
 ```bash
 ./litsync
 ```
-*The daemon will automatically create a `litsync_folder` in your build directory and begin broadcasting its presence on port 8888.*
+*The daemon will automatically create a `LitSync` at your `home/user_name/`. If it fails, daemon will create `litsync_folder` in your build directory and begin broadcasting its presence on port 8888.*
 
 ### 3. Android App Setup (Kotlin)
 The Android client listens for the Linux daemon, tracks local file changes, and maintains the background connection.

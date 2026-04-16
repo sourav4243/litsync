@@ -110,3 +110,13 @@ LitSync's core engine is fully functional, but development is ongoing. Upcoming 
 - **Recursive Subdirectory Support:** Watch and sync nested folders, not just the root directory.
 - **Real-Time UI Progress Bars:** Display exact transfer percentages for large files.
 - **Boot Receiver:** Automatically launch the Android SyncService when the phone turns on.
+
+## Star History:
+
+<a href="https://www.star-history.com/#sourav4243/litsync&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=sourav4243/litsync&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=sourav4243/litsync&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=sourav4243/litsync&type=Date" />
+ </picture>
+</a>

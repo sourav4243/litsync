@@ -30,9 +30,16 @@ LitSync follows a client–daemon model.
 
 [![Download APK](https://img.shields.io/badge/Download-APK-green.svg?style=for-the-badge&logo=android)](https://github.com/sourav4243/litsync/releases/latest)
 
-A blazingly fast, true two-way local file synchronization engine between Linux and Android. Built entirely from scratch in C++ and Kotlin, LitSync completely eliminates the need for USB cables, cloud storage, or messaging yourself files on WhatsApp.
+A blazingly fast, true two-way local file synchronization engine between Linux and Android.
 
+## Demo
+<img width="1000" height="563" alt="litSync-readme-muted" src="https://github.com/user-attachments/assets/dc9f021f-d4c5-4471-857a-ef7adb0cba68" />
+
+
+LitSync completely eliminates the need for USB cables, cloud storage, or messaging yourself files on WhatsApp. 
 If your phone and your Linux machine are on the same Wi-Fi network, your files are instantly synced. 
+
+Built entirely from scratch in C++ and Kotlin, 
 
 ## Features
 * **True Two-Way Sync:** Drop a file on your PC, it appears on your phone. Save a file on your phone, it appears on your PC.

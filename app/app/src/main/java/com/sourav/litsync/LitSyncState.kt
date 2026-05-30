@@ -10,4 +10,6 @@ object LitSyncState {
 
     // list to keep track of files currently being downloaded so watcher ignore them
     val filesBeingReceived: MutableSet<String> = Collections.synchronizedSet(mutableSetOf())
+
+    val isTransferring = java.util.concurrent.atomic.AtomicBoolean(false)
 }

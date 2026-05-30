@@ -91,6 +91,10 @@ class SyncService : Service() {
                 val heartbeatJob = launch {
                     while (isActive) {
                         kotlinx.coroutines.delay(3000)  // ping every 3 seconds
+                        if (LitSyncState.isTransferring.get()) {
+                            println("[SyncService] Transfer in progress, skipping hearbeat ping.")
+                            continue
+                        }
                         val isAlive = NetworkManager().sendPing(currentIp, currentPort)
                         if (!isAlive) {
                             println("[SyncService] Heartbeat lost! Tripping wire...")
@@ -103,6 +107,7 @@ class SyncService : Service() {
                 // start watching for file changes
                 activeWatcher = Watcher(folderPath) { action, file ->
                     serviceScope.launch {
+                        LitSyncState.isTransferring.set(true)
                         val success = if (action == "UPLOAD") {
                             NetworkManager().sendFile(file, currentIp, currentPort)
                         } else if (action == "DELETE") {
@@ -110,6 +115,7 @@ class SyncService : Service() {
                         } else {
                             true
                         }
+                        LitSyncState.isTransferring.set(false)
 
                         if(!success){
                             println("[SyncService] Network request failed! Tripping wire...")

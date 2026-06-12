@@ -157,7 +157,9 @@ void NetworkManager::listenForConnections(SyncManager& syncManager, const std::s
 
                     // path where the file will be saved
                     std::string filepath = sync_folder + "/" + cmd.filename;
-                    std::ofstream outfile(filepath, std::ios::binary);
+                    std::string tmp_path = filepath + ".tmp";  // write in tmp file first
+                    
+                    std::ofstream outfile(tmp_path, std::ios::binary);
 
                     if(outfile.is_open()){
                         size_t total_received = 0;
@@ -195,11 +197,20 @@ void NetworkManager::listenForConnections(SyncManager& syncManager, const std::s
                         }
 
                         std::cout << std::endl; // lock in the finished progress bar
-                        std::cout << "[Watcher] Successfully saved: " << cmd.filename << std::endl;
-
                         outfile.close();
+
+                        // only rename to real name if got complete data
+                        if(total_received >= cmd.filesize){
+                            std::filesystem::rename(tmp_path, filepath);
+                            std::cout << "[Watcher] Successfully saved: " << cmd.filename << std::endl;
+                        } else {
+                            // partial transfer: delete the .tmp and give log on terminal
+                            std::filesystem::remove(tmp_path);
+                            std::cerr << "[Network] Incomplete transfer, discarded: " << cmd.filename << std::endl;
+                        }
+
                     } else {
-                        std::cerr << "[Netowork] Error: Could not open file for writing: " << filepath << std::endl;
+                        std::cerr << "[Netowork] Error: Could not open tmp file for writing: " << tmp_path << std::endl;
                     }
                 }
 

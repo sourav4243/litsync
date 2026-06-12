@@ -57,11 +57,15 @@ class ServerManager(private val folderPath: String) {
                             // tell watcher to ignore this file
                             LitSyncState.filesBeingReceived.add(fileName)
 
+                            val tmpFile = File(folderPath, "$fileName.tmp")
+
+                            var totalRead = 0L
+                            var transferComplete = false
+
                             // stream raw file bytes directly to android hard drive
-                            FileOutputStream(targetFile).use{ fos ->
+                            FileOutputStream(tmpFile).use{ fos ->
                                 val buffer = ByteArray(4096)
                                 var bytesRead: Int
-                                var totalRead = 0L
 
                                 while(totalRead < size){
                                     // only read exactly what we need so we don't block forever
@@ -72,11 +76,22 @@ class ServerManager(private val folderPath: String) {
                                     fos.write(buffer, 0, bytesRead)
                                     totalRead += bytesRead
                                 }
+
+                                transferComplete = totalRead >= size
+                            }
+
+                            if(transferComplete){
+                                // atomic: tmp -> real name
+                                tmpFile.renameTo(targetFile)
+                                println("[ServerManager] Successfully saved linux push: $fileName")
+                            } else {
+                                // partial transfer: discard silently
+                                tmpFile.delete()
+                                println("[ServerManager] Incomplete transfer, discarded: $fileName")
                             }
 
                             // file saved. unignore now
                             LitSyncState.filesBeingReceived.remove(fileName)
-                            println("[ServerManager] Successfully saved linux push: $fileName")
                         }
 
                         "DELETE" -> {
